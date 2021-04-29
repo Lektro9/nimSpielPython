@@ -5,9 +5,11 @@ from PyQt5.QtWidgets import QDialog, QApplication
 from PyQt5.uic import loadUi
 from components.Server import ServerThread
 from components.Client import ClientThread
+from components.MessageListener import MessageListener
 
 HEADERSIZE = 10
 
+connectedClients = {}
 
 class testUI(QDialog):
 
@@ -20,14 +22,20 @@ class testUI(QDialog):
     def __init__(self):
         super(testUI, self).__init__()
         loadUi("test.ui", self)
+        # Buttons
         self.host_btn.clicked.connect(self.host_click)
         self.connect_btn.clicked.connect(self.client_click)
         self.enter_nickname.clicked.connect(self.nickname_click)
         self.send_btn.clicked.connect(self.send_msg_client)
 
+# Buttons
+
     def host_click(self):
         self.worker = ServerThread()
         self.worker.start()
+        #ThreadSignals
+        self.worker.need_new_server_listener.connect(
+            self.evt_need_new_server_listener)
 
     def send_msg_client(self):
         # Send data
@@ -42,6 +50,19 @@ class testUI(QDialog):
 
     def nickname_click(self):
         print(self.nickname_input.text())
+
+# Messages from threads
+
+    def evt_need_new_server_listener(self, socket, addr):
+        self.message_worker = MessageListener(socket, addr)
+        self.message_worker.start()
+        #ThreadSignals
+        self.message_worker.get_message.connect(
+            self.evt_get_message)
+        print("nothing yet ")
+
+    def evt_get_message(self, msg):
+        print("message of the other guy: " + msg)
 
 
 app = QApplication(sys.argv)
